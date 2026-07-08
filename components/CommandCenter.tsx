@@ -48,12 +48,12 @@ export function CommandCenter() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
-              H3
+              H4
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Hermes 3 Command Center</h1>
+              <h1 className="text-lg font-bold tracking-tight">Hermes 4 Command Center</h1>
               <p className="text-xs text-slate-500 dark:text-slate-500 font-mono">
-                Agent Control Room · Orchestrator · Specialists — Llama 3.2-based, 128K context
+                Observer · Analyst · Memory Keeper — hermes4-14b · OmniRoute · 1.6B tokens/month free
               </p>
             </div>
           </div>
@@ -68,7 +68,7 @@ export function CommandCenter() {
             <div className="flex flex-col items-end">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-xs font-bold uppercase tracking-wider">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-[#0A0C10] animate-pulse"></span>
-                online — localhost:11434
+                online — omniroute + :11434
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-500 mt-1.5">
                 Last updated: just now
@@ -139,8 +139,8 @@ function OverviewTab() {
           </div>
           <div className="flex flex-wrap gap-2 mt-6">
             <Badge color="green">routing active</Badge>
-            <Badge color="blue">VPS connected</Badge>
-            <Badge color="purple">orchestrated path</Badge>
+            <Badge color="blue">OmniRoute connected</Badge>
+            <Badge color="purple">hybrid memory</Badge>
           </div>
         </Card>
       </div>
@@ -184,38 +184,39 @@ function MemoryTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card title="Mem0 (Vector+Graph)" icon={Database}>
-           <div className="text-3xl font-bold tracking-tight">1,247 <span className="text-sm font-normal text-slate-500 dark:text-slate-500">facts</span></div>
-           <ProgressBar value={62} color="bg-emerald-500" className="mt-4 mb-2" />
+        <Card title="OmniRoute Memory (Primary)" icon={Database}>
+           <div className="text-3xl font-bold tracking-tight">hybrid <span className="text-sm font-normal text-slate-500 dark:text-slate-500">recall</span></div>
+           <ProgressBar value={100} color="bg-emerald-500" className="mt-4 mb-2" />
            <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-500">
-             <span>Vector: 1,180</span>
-             <span>Graph: 42</span>
-             <span>SQL: 25</span>
+             <span>FTS5 keyword</span>
+             <span>Qdrant vector</span>
+             <span>persistent</span>
            </div>
         </Card>
-        <Card title="Zep (Temporal KG)" icon={Database}>
-           <div className="text-3xl font-bold tracking-tight">4,192 <span className="text-sm font-normal text-slate-500 dark:text-slate-500">events</span></div>
+        <Card title="Observation Store (Ingest)" icon={Database}>
+           <div className="text-3xl font-bold tracking-tight">local <span className="text-sm font-normal text-slate-500 dark:text-slate-500">JSON</span></div>
            <ProgressBar value={40} color="bg-indigo-500" className="mt-4 mb-2" />
            <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-500">
-             <span>Episodes: 382</span>
-             <span>Entities: 890</span>
+             <span>ARGUS events</span>
+             <span>Lab Brain escalations</span>
+             <span>500 obs cap</span>
            </div>
         </Card>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card title="LangMem (LangGraph)" icon={Activity}>
-           <div className="text-2xl font-bold tracking-tight">Active</div>
-           <div className="text-xs text-slate-500 dark:text-slate-500 mt-2 mt-4">Manages conversational threads and subgraph transitions.</div>
+        <Card title="OmniRoute Resilience" icon={Activity}>
+           <div className="text-2xl font-bold tracking-tight">3-Layer</div>
+           <div className="text-xs text-slate-500 dark:text-slate-500 mt-4">Circuit breaker per provider · cooldown per connection · lockout per model. Other keys keep serving.</div>
         </Card>
-        <Card title="ChromaDB (Vector Store)" icon={HardDrive}>
-           <div className="text-2xl font-bold tracking-tight">8.4 MB</div>
-           <ProgressBar value={12} color="bg-purple-500" className="mt-4 mb-2" />
-           <div className="text-xs text-slate-500 dark:text-slate-500">Embeddings & Document Chunks</div>
+        <Card title="Local Ollama (Fallback)" icon={HardDrive}>
+           <div className="text-2xl font-bold tracking-tight">hermes4-14b</div>
+           <ProgressBar value={65} color="bg-purple-500" className="mt-4 mb-2" />
+           <div className="text-xs text-slate-500 dark:text-slate-500">Q6_K · 64K ctx · :11434</div>
         </Card>
-        <Card title="Redis (Cache)" icon={HardDrive}>
-           <div className="text-2xl font-bold tracking-tight">98% <span className="text-sm font-normal text-slate-500 dark:text-slate-500">hit rate</span></div>
-           <ProgressBar value={98} color="bg-amber-500" className="mt-4 mb-2" />
-           <div className="text-xs text-slate-500 dark:text-slate-500">Session states & semantic caching</div>
+        <Card title="Token Budget" icon={HardDrive}>
+           <div className="text-2xl font-bold tracking-tight">1.6B <span className="text-sm font-normal text-slate-500 dark:text-slate-500">/month</span></div>
+           <ProgressBar value={15} color="bg-amber-500" className="mt-4 mb-2" />
+           <div className="text-xs text-slate-500 dark:text-slate-500">90+ free providers · 15–95% compression</div>
         </Card>
       </div>
     </div>
@@ -279,6 +280,7 @@ function IntegrationsTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
            <IntegrationItem name="Lab Brain (WebSocket)" desc="ws://localhost:8785 (via /api/query/lab-brain)" status="connected" />
            <IntegrationItem name="ARGUS Escalations" desc="Webhook receiver on /api/hermes/ingest" status="active" />
+           <IntegrationItem name="OmniRoute Gateway" desc="Primary inference · 90+ providers · MCP server" status="connected" />
         </div>
       </div>
       <div>
@@ -287,8 +289,8 @@ function IntegrationsTab() {
           Memory & Storage
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <IntegrationItem name="Mem0" desc="Vector + Graph + SQL hybrid memory layer" status="active" />
-           <IntegrationItem name="ChromaDB" desc="Vector store · HNSW index" status="active" />
+           <IntegrationItem name="OmniRoute Memory" desc="FTS5 keyword + Qdrant vector · hybrid recall · persistent" status="active" />
+           <IntegrationItem name="Local Observation Store" desc="JSON file · ARGUS/Lab Brain ingest · 500 obs cap" status="active" />
         </div>
       </div>
       <div>
@@ -297,7 +299,7 @@ function IntegrationsTab() {
           API Keys Configuration
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <ApiKeyInput name="OpenRouter API Key" provider="openrouter" />
+           <ApiKeyInput name="OmniRoute API Key" provider="omniroute" />
            <ApiKeyInput name="OpenAI API Key" provider="openai" />
            <ApiKeyInput name="Anthropic API Key" provider="anthropic" />
            <ApiKeyInput name="Google Gemini API Key" provider="gemini" />
@@ -312,12 +314,12 @@ function LogsTab() {
     <Card title="Observability Stream" icon={Terminal}>
       <div className="space-y-0 font-mono text-sm mt-2">
         <LogItem time="14:14:02" msg="Tool call: bridge_status — timeout after 30s" type="error" />
-        <LogItem time="14:12:47" msg="Memory extraction: 3 facts added to Mem0 (Sage, Seven, Mama)" type="info" />
+        <LogItem time="14:12:47" msg="Memory extraction: 3 facts added to OmniRoute memory (Sage, Seven, Mama)" type="info" />
         <LogItem time="14:10:33" msg="Context compression triggered — reclaimed 3,200 tokens" type="system" />
-        <LogItem time="14:08:19" msg="RAG retrieval: 5 chunks from 'Sage conversation archives'" type="system" />
-        <LogItem time="14:05:56" msg="KV cache warning: 78% of allocated VRAM" type="warn" />
+        <LogItem time="14:08:19" msg="RAG retrieval: 5 chunks from hybrid recall (FTS5 + Qdrant)" type="system" />
+        <LogItem time="14:05:56" msg="OmniRoute: provider failover triggered, circuit breaker engaged" type="warn" />
         <LogItem time="14:03:41" msg="Session 'Bridge diagnostics — Sage-7' initialized" type="info" />
-        <LogItem time="14:01:22" msg="Ollama health check passed — hermes3:3b ready" type="info" />
+        <LogItem time="14:01:22" msg="Ollama health check passed — hermes4-14b ready (fallback)" type="info" />
       </div>
     </Card>
   );
@@ -377,7 +379,6 @@ function ChatTab() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -466,10 +467,9 @@ function ChatTab() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/query/lab-brain", {
+      const response = await fetch("/api/hermes/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // send history without the `originalFile` custom field
         body: JSON.stringify({
           messages: newMessages.map(m => ({
             role: m.role,
@@ -480,7 +480,7 @@ function ChatTab() {
       const data = await response.json();
       
       if (response.ok) {
-        setMessages(prev => [...prev, { role: "model", parts: [{ text: data.text }] }]);
+        setMessages(prev => [...prev, { role: "model", parts: [{ text: data.response }] }]);
       } else {
         setMessages(prev => [...prev, { role: "model", parts: [{ text: `Error: ${data.error}` }] }]);
       }
@@ -542,7 +542,7 @@ function ChatTab() {
               </button>
             </>
           )}
-          <div className="text-[10px] font-bold text-indigo-400 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full uppercase tracking-wider">gemini-2.5-flash</div>
+          <div className="text-[10px] font-bold text-indigo-400 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full uppercase tracking-wider">hermes4-14b · omniroute</div>
         </div>
       </div>
 
@@ -561,7 +561,6 @@ function ChatTab() {
                 ? 'bg-indigo-600 text-white rounded-tr-sm' 
                 : 'bg-slate-50 dark:bg-slate-800/40 text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-200 dark:border-slate-700/30'
             }`}>
-              {/* If user attached files, show a small preview */}
               {msg.originalFiles && msg.originalFiles.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
                   {msg.originalFiles.map((file: any, i: number) => (
@@ -614,7 +613,6 @@ function ChatTab() {
       {/* Input Area */}
       <div className="p-4 border-t border-slate-800 bg-slate-900/50">
         
-        {/* Selected Files Preview List */}
         {(selectedFiles.length > 0 || isProcessingFiles) && (
           <div className="flex flex-wrap gap-2 mb-3">
             {selectedFiles.map((file, idx) => (
@@ -842,8 +840,11 @@ function OmniRouteTab() {
       <div className="flex-1 bg-slate-50 dark:bg-[#0A0C10] flex flex-col items-center justify-center p-8 text-center">
         <Globe size={48} className="text-slate-300 dark:text-slate-700 mb-4" />
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">External Gateway</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-6">
-          The OmniRoute Web Dashboard is protected and must be opened in a new window to ensure a secure connection.
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-2">
+          Primary inference for Hermes 4. 1.6B tokens/month free across 90+ providers.
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-500 max-w-sm mb-6">
+          Hybrid memory (FTS5 + Qdrant) · 15–95% compression · 3-layer resilience · MCP server
         </p>
         <a 
           href="https://omniroute.online/" 
