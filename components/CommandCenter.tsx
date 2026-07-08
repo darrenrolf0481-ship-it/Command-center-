@@ -28,7 +28,7 @@ export function CommandCenter() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const isDark = mounted ? theme === "dark" : true;
+  const isDark = mounted ? (theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)) : true;
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Activity },
@@ -149,16 +149,16 @@ function OverviewTab() {
       <div className="lg:col-span-1">
         <Card title="Control Plane" icon={Terminal}>
           <div className="grid grid-cols-1 gap-3 mt-2">
-            <button className="w-full text-left px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors shadow-lg shadow-indigo-500/20">
+            <button onClick={() => alert("Deploying New Agent...")} className="w-full text-left px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors shadow-lg shadow-indigo-500/20">
               Deploy New Agent
             </button>
-            <button className="w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded-xl text-xs font-bold transition-colors">
+            <button onClick={() => alert("Auditing Security...")} className="w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded-xl text-xs font-bold transition-colors">
               Audit Security (agent-security-auditor)
             </button>
-            <button className="w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded-xl text-xs font-bold transition-colors">
+            <button onClick={() => alert("Syncing SSH Aliases...")} className="w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded-xl text-xs font-bold transition-colors">
               Sync SSH Aliases
             </button>
-            <button className="w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded-xl text-xs font-bold transition-colors">
+            <button onClick={() => alert("Running Backup Check...")} className="w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded-xl text-xs font-bold transition-colors">
               Run Backup Check
             </button>
           </div>
@@ -821,7 +821,7 @@ function ApiKeyInput({ name, provider }: { name: string, provider: string }) {
           placeholder={`Enter ${provider} key...`}
           className="flex-1 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
-        <button className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors">
+        <button onClick={() => alert("Saved API Key for " + provider)} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors">
           Save
         </button>
       </div>
