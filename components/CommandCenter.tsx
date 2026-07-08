@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { useTheme } from "next-themes";
 import {
   Moon,
+  Trash2,
   Sun,
   Activity,
   Cpu,
@@ -10,25 +12,23 @@ import {
   Terminal,
   Settings,
   HardDrive,
-  MessageSquare,
+  MessageSquare, Globe, ExternalLink,
   Paperclip,
   Send,
   Loader2,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Copy,
+  Check,
+  Download,
 } from "lucide-react";
 
 export function CommandCenter() {
   const [activeTab, setActiveTab] = useState("overview");
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDark]);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = mounted ? theme === "dark" : true;
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Activity },
@@ -37,6 +37,7 @@ export function CommandCenter() {
     { id: "integrations", label: "Integrations", icon: Network },
     { id: "logs", label: "Logs", icon: Terminal },
     { id: "chat", label: "Chat", icon: MessageSquare },
+    { id: "omniroute", label: "OmniRoute", icon: Globe },
   ];
 
   return (
@@ -58,7 +59,7 @@ export function CommandCenter() {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setIsDark(!isDark)}
+              onClick={() => setTheme(isDark ? "light" : "dark")}
               className="p-2.5 rounded-full bg-slate-900/50 border border-slate-800 hover:border-indigo-500 transition-all text-slate-400 hover:text-white focus:outline-none"
               aria-label="Toggle theme"
             >
@@ -105,6 +106,7 @@ export function CommandCenter() {
           {activeTab === "integrations" && <IntegrationsTab />}
           {activeTab === "logs" && <LogsTab />}
           {activeTab === "chat" && <ChatTab />}
+          {activeTab === "omniroute" && <OmniRouteTab />}
         </div>
       </div>
     </div>
@@ -325,63 +327,142 @@ function LogsTab() {
 
 function ChatTab() {
   const [messages, setMessages] = useState<any[]>([]);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const [input, setInput] = useState("");
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<{name: string, type: string, base64: string} | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<{name: string, type: string, base64: string}[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const handleCopy = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  useEffect(() => {
+    const saved = localStorage.getItem("hermesChatHistory");
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse chat history");
+      }
+    }
+    setIsHistoryLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isHistoryLoaded) {
+      localStorage.setItem("hermesChatHistory", JSON.stringify(messages));
+    }
+  }, [messages, isHistoryLoaded]);
+
+  const clearHistory = () => {
+    setMessages([]);
+    localStorage.removeItem("hermesChatHistory");
+  };
+
+  const exportHistory = () => {
+    if (messages.length === 0) return;
+    const blob = new Blob([JSON.stringify(messages, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chat-history-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isLoading, isProcessingFiles]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFiles = (files: FileList | File[]) => {
+    const newFiles = Array.from(files);
+    if (newFiles.length === 0) return;
+    
+    setIsProcessingFiles(true);
+    let processedCount = 0;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64String = (event.target?.result as string).split(',')[1];
-      setSelectedFile({
-        name: file.name,
-        type: file.type,
-        base64: base64String
-      });
-    };
-    reader.readAsDataURL(file);
+    newFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = (event.target?.result as string).split(',')[1];
+        setSelectedFiles(prev => [...prev, {
+          name: file.name,
+          type: file.type,
+          base64: base64String
+        }]);
+        processedCount++;
+        if (processedCount === newFiles.length) {
+          setIsProcessingFiles(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
     
     if (fileInputRef.current) {
        fileInputRef.current.value = "";
     }
   };
 
-  const removeFile = () => {
-    setSelectedFile(null);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    handleFiles(files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    handleFiles(files);
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSend = async () => {
-    if ((!input.trim() && !selectedFile) || isLoading) return;
+    if ((!input.trim() && selectedFiles.length === 0) || isLoading) return;
 
     const newUserMessageParts: any[] = [];
     if (input.trim()) {
       newUserMessageParts.push({ text: input.trim() });
     }
     
-    if (selectedFile) {
+    selectedFiles.forEach(file => {
       newUserMessageParts.push({
         inlineData: {
-          data: selectedFile.base64,
-          mimeType: selectedFile.type
+          data: file.base64,
+          mimeType: file.type
         }
       });
-    }
+    });
 
-    const newUserMsg = { role: "user", parts: newUserMessageParts, originalFile: selectedFile };
+    const newUserMsg = { role: "user", parts: newUserMessageParts, originalFiles: selectedFiles };
     const newMessages = [...messages, newUserMsg];
     
     setMessages(newMessages);
     setInput("");
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setIsLoading(true);
 
     try {
@@ -396,7 +477,6 @@ function ChatTab() {
           }))
         }),
       });
-
       const data = await response.json();
       
       if (response.ok) {
@@ -412,14 +492,58 @@ function ChatTab() {
   };
 
   return (
-    <div className="flex flex-col h-[600px] bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden relative">
+    <div 
+      className={`flex flex-col h-[600px] bg-white dark:bg-slate-900/40 border ${isDragging ? 'border-indigo-500' : 'border-slate-200 dark:border-slate-800'} rounded-3xl overflow-hidden relative transition-colors duration-200`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-indigo-500/10 backdrop-blur-sm border-2 border-indigo-500 border-dashed rounded-3xl">
+          <div className="flex flex-col items-center gap-4 p-8 bg-white/80 dark:bg-slate-900/80 rounded-2xl shadow-xl backdrop-blur-md">
+            <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <FileText size={32} />
+            </div>
+            <p className="text-lg font-bold text-slate-800 dark:text-slate-200">Drop document here</p>
+            <p className="text-sm text-slate-500">Supports Images, PDFs, and Text files</p>
+            {selectedFiles.length > 0 && (
+               <div className="mt-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider">
+                  {selectedFiles.length} file{selectedFiles.length === 1 ? '' : 's'} queued
+               </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
         <div className="flex items-center gap-3">
           <MessageSquare size={18} className="text-indigo-400" />
           <h2 className="font-bold text-sm uppercase tracking-widest text-slate-800 dark:text-slate-200">Hermes Assistant</h2>
         </div>
-        <div className="text-[10px] font-bold text-indigo-400 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full uppercase tracking-wider">gemini-2.5-flash</div>
+        <div className="flex items-center gap-3">
+          {messages.length > 0 && (
+            <>
+              <button
+                onClick={exportHistory}
+                className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-indigo-500 uppercase tracking-widest transition-colors"
+                title="Export History"
+              >
+                <Download size={14} />
+                Export
+              </button>
+              <button
+                onClick={clearHistory}
+                className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-rose-500 uppercase tracking-widest transition-colors"
+                title="Clear History"
+              >
+                <Trash2 size={14} />
+                Clear
+              </button>
+            </>
+          )}
+          <div className="text-[10px] font-bold text-indigo-400 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full uppercase tracking-wider">gemini-2.5-flash</div>
+        </div>
       </div>
 
       {/* Messages */}
@@ -427,25 +551,29 @@ function ChatTab() {
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 dark:text-slate-500 space-y-4">
              <MessageSquare size={48} className="opacity-20" />
-             <p className="text-sm">Start a conversation or upload a document to begin.</p>
+             <p className="text-sm">Start a conversation or drag and drop a document to begin.</p>
           </div>
         )}
         {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={idx} className={`flex group ${msg.role === 'user' ? 'justify-end' : 'justify-start'} items-start gap-2`}>
             <div className={`max-w-[80%] rounded-2xl px-5 py-4 ${
               msg.role === 'user' 
                 ? 'bg-indigo-600 text-white rounded-tr-sm' 
                 : 'bg-slate-50 dark:bg-slate-800/40 text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-200 dark:border-slate-700/30'
             }`}>
-              {/* If user attached a file, show a small preview */}
-              {msg.originalFile && (
-                <div className={`flex items-center gap-3 mb-3 p-3 rounded-xl ${msg.role === 'user' ? 'bg-indigo-700/50' : 'bg-slate-700/50'}`}>
-                  {msg.originalFile.type.startsWith('image/') ? (
-                    <ImageIcon size={18} className="shrink-0" />
-                  ) : (
-                    <FileText size={18} className="shrink-0" />
-                  )}
-                  <span className="text-xs truncate max-w-[200px] font-medium">{msg.originalFile.name}</span>
+              {/* If user attached files, show a small preview */}
+              {msg.originalFiles && msg.originalFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {msg.originalFiles.map((file: any, i: number) => (
+                    <div key={i} className={`flex items-center gap-3 p-3 rounded-xl ${msg.role === 'user' ? 'bg-indigo-700/50 text-indigo-50' : 'bg-slate-200 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200'}`}>
+                      {file.type.startsWith('image/') ? (
+                        <ImageIcon size={18} className="shrink-0" />
+                      ) : (
+                        <FileText size={18} className="shrink-0" />
+                      )}
+                      <span className="text-xs truncate max-w-[150px] font-medium">{file.name}</span>
+                    </div>
+                  ))}
                 </div>
               )}
               {msg.parts.map((part: any, i: number) => {
@@ -455,13 +583,28 @@ function ChatTab() {
                 return null;
               })}
             </div>
+            {msg.role !== 'user' && (
+              <button
+                onClick={() => handleCopy(msg.parts.map((p: any) => p.text || '').join(''), idx)}
+                className="mt-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                title="Copy to clipboard"
+                aria-label="Copy message"
+              >
+                {copiedIndex === idx ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+              </button>
+            )}
           </div>
         ))}
         {isLoading && (
           <div className="flex justify-start">
-             <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 rounded-2xl rounded-tl-sm px-5 py-4 flex items-center gap-3 text-slate-400">
-               <Loader2 size={16} className="animate-spin" />
-               <span className="text-sm">Processing...</span>
+             <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 rounded-2xl rounded-tl-sm px-5 py-4 w-full max-w-[80%] space-y-3">
+               <div className="flex items-center gap-2 mb-2">
+                 <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700/50 animate-pulse"></div>
+                 <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700/50 rounded animate-pulse"></div>
+               </div>
+               <div className="h-3 w-full bg-slate-200 dark:bg-slate-700/50 rounded animate-pulse"></div>
+               <div className="h-3 w-5/6 bg-slate-200 dark:bg-slate-700/50 rounded animate-pulse"></div>
+               <div className="h-3 w-4/6 bg-slate-200 dark:bg-slate-700/50 rounded animate-pulse"></div>
              </div>
           </div>
         )}
@@ -471,24 +614,40 @@ function ChatTab() {
       {/* Input Area */}
       <div className="p-4 border-t border-slate-800 bg-slate-900/50">
         
-        {/* Selected File Preview */}
-        {selectedFile && (
-          <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 rounded-xl max-w-fit">
-            {selectedFile.type.startsWith('image/') ? (
-               // eslint-disable-next-line @next/next/no-img-element
-               <img src={`data:${selectedFile.type};base64,${selectedFile.base64}`} alt="preview" className="w-10 h-10 object-cover rounded-lg" />
-            ) : (
-               <div className="w-10 h-10 bg-slate-700/50 rounded-lg flex items-center justify-center text-slate-400">
-                  <FileText size={18} />
-               </div>
+        {/* Selected Files Preview List */}
+        {(selectedFiles.length > 0 || isProcessingFiles) && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {selectedFiles.map((file, idx) => (
+              <div key={idx} className="flex items-center gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 rounded-xl max-w-fit relative group">
+                {file.type.startsWith('image/') ? (
+                   // eslint-disable-next-line @next/next/no-img-element
+                   <img src={`data:${file.type};base64,${file.base64}`} alt="preview" className="w-10 h-10 object-cover rounded-lg" />
+                ) : (
+                   <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700/50 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400">
+                      <FileText size={18} />
+                   </div>
+                )}
+                <div className="flex flex-col pr-6">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[150px] truncate">{file.name}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-500 font-medium uppercase tracking-wider mt-0.5">Queued</span>
+                </div>
+                <button 
+                  onClick={() => removeFile(idx)} 
+                  className="absolute right-3 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+            ))}
+            {isProcessingFiles && (
+              <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/30 rounded-xl w-48 relative overflow-hidden">
+                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700/50 rounded-lg animate-pulse shrink-0"></div>
+                <div className="flex flex-col gap-1.5 flex-1 w-full">
+                  <div className="h-3 w-full bg-slate-200 dark:bg-slate-700/50 rounded animate-pulse"></div>
+                  <div className="h-2 w-1/2 bg-slate-200 dark:bg-slate-700/50 rounded animate-pulse"></div>
+                </div>
+              </div>
             )}
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[200px] truncate">{selectedFile.name}</span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-500 font-medium uppercase tracking-wider mt-0.5">Attached asset</span>
-            </div>
-            <button onClick={removeFile} className="ml-3 text-slate-500 dark:text-slate-500 hover:text-rose-400 transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
           </div>
         )}
 
@@ -506,6 +665,7 @@ function ChatTab() {
             onChange={handleFileChange}
             className="hidden"
             accept="image/*,application/pdf,text/plain"
+            multiple
           />
           
           <div className="flex-1 relative">
@@ -518,7 +678,7 @@ function ChatTab() {
                   handleSend();
                 }
               }}
-              placeholder="Message Hermes or ask about the document..."
+              placeholder="Message Hermes, or drag and drop a document..."
               className="w-full max-h-32 min-h-[46px] p-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700/30 bg-slate-50 dark:bg-slate-800/40 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none text-sm placeholder:text-slate-500 dark:text-slate-500"
               rows={1}
             />
@@ -526,7 +686,7 @@ function ChatTab() {
           
           <button 
             onClick={handleSend}
-            disabled={(!input.trim() && !selectedFile) || isLoading}
+            disabled={(!input.trim() && selectedFiles.length === 0) || isLoading}
             className="p-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-colors shrink-0 shadow-lg shadow-indigo-500/20"
           >
             <Send size={20} />
@@ -558,11 +718,11 @@ function Card({ title, icon: Icon, children }: { title: string, icon: any, child
 
 function Badge({ children, color }: { children: React.ReactNode, color: 'blue' | 'green' | 'yellow' | 'red' | 'purple' }) {
   const colorMap = {
-    blue: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-    green: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    yellow: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    red: "bg-rose-500/10 text-rose-400 border-rose-500/20",
-    purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    blue: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+    green: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    yellow: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    red: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+    purple: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
   };
   
   return (
@@ -631,16 +791,16 @@ function IntegrationItem({ name, desc, status }: { name: string, desc: string, s
 
 function LogItem({ time, msg, type }: { time: string, msg: string, type: 'info' | 'warn' | 'error' | 'system' }) {
   const typeMap = {
-    info: "bg-emerald-500/10 text-emerald-400",
-    warn: "bg-amber-500/10 text-amber-400",
-    error: "bg-rose-500/10 text-rose-400",
-    system: "bg-indigo-500/10 text-indigo-400"
+    info: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    warn: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    error: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    system: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
   };
 
   return (
-    <div className="flex gap-3 items-start py-2.5 px-3 border border-slate-800/50 bg-slate-900/20 rounded-xl hover:bg-slate-50 dark:bg-slate-800/40 mb-2 last:mb-0">
-      <div className="text-[10px] text-slate-500 dark:text-slate-500 shrink-0 w-16 pt-0.5">{time}</div>
-      <div className="text-xs text-slate-300 flex-1">{msg}</div>
+    <div className="flex gap-3 items-start py-2.5 px-3 border border-slate-200 dark:border-slate-800/50 bg-slate-100 dark:bg-slate-800/40 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800/60 mb-2 last:mb-0">
+      <div className="text-[10px] text-slate-500 shrink-0 w-16 pt-0.5">{time}</div>
+      <div className="text-xs text-slate-700 dark:text-slate-300 flex-1">{msg}</div>
       <div className={`text-[9px] px-2 py-0.5 rounded shrink-0 font-bold uppercase tracking-wider ${typeMap[type]}`}>
         {type}
       </div>
@@ -664,6 +824,36 @@ function ApiKeyInput({ name, provider }: { name: string, provider: string }) {
         <button className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors">
           Save
         </button>
+      </div>
+    </div>
+  );
+}
+
+function OmniRouteTab() {
+  return (
+    <div className="flex flex-col h-[600px] bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden relative">
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+        <div className="flex items-center gap-3">
+          <Globe size={18} className="text-emerald-500 dark:text-emerald-400" />
+          <h2 className="font-bold text-sm uppercase tracking-widest text-slate-800 dark:text-slate-200">OmniRoute Gateway</h2>
+        </div>
+        <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full uppercase tracking-wider">Web Dashboard</div>
+      </div>
+      <div className="flex-1 bg-slate-50 dark:bg-[#0A0C10] flex flex-col items-center justify-center p-8 text-center">
+        <Globe size={48} className="text-slate-300 dark:text-slate-700 mb-4" />
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">External Gateway</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-6">
+          The OmniRoute Web Dashboard is protected and must be opened in a new window to ensure a secure connection.
+        </p>
+        <a 
+          href="https://omniroute.online/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors"
+        >
+          Open OmniRoute Dashboard
+          <ExternalLink size={16} />
+        </a>
       </div>
     </div>
   );
