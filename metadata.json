@@ -1,0 +1,6 @@
+{
+  "name": "Hermes Command Center",
+  "description": "Command center for Hermes integration with Chat and Document Upload functionality.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
