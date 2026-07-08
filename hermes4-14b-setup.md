@@ -67,20 +67,35 @@ the difficulty of the question, not be applied uniformly."""
 PARAMETER temperature 0.4
 PARAMETER top_p 0.9
 PARAMETER repeat_penalty 1.1
-PARAMETER num_ctx 32768
+PARAMETER num_ctx 65536
 PARAMETER num_predict 4096
 PARAMETER stop "<|im_end|>"
 ```
 
-Notes on the parameters:
-- `num_ctx 32768` — pushed well above the old 3B's 8K window since "remember
-  everything" is the point of this instance and the box has RAM for it. Can
-  go higher (Hermes 4 supports up to 128K-ish per Nous docs) but each doubling
-  of context costs more RAM for KV cache — watch actual usage after first
-  load before pushing further.
-- `temperature 0.4` — lower than default, favors consistency/correctness over
-  creativity, appropriate for an analysis role. Bump to 0.7-0.8 if you want
-  more creative output for things like writing summaries in her own voice.
+### Context window notes
+
+Hermes runs as a **dedicated Ollama instance** — no model sharing, no
+contention. That's why `num_ctx` is set to 65536 (64K) rather than the
+conservative 32K starting point. RAM breakdown on Zo's 32GB:
+
+| Component | Approx size |
+|---|---|
+| Q6_K weights | ~11.5 GB |
+| KV cache at 64K ctx | ~8–10 GB |
+| Total | ~21 GB |
+
+That leaves ~10GB headroom for OS and other processes — comfortable.
+There is no point having a persistent memory/observer AI if he runs out of
+context mid-session. 64K is the right default here.
+
+To go higher: 128K is theoretically supported (Nous docs say up to 128K)
+but pushes total RAM to ~30GB — too tight for safe operation. Stick with
+64K unless you've profiled actual usage and confirmed headroom.
+
+Other parameters:
+- `temperature 0.4` — favors consistency/correctness over creativity,
+  appropriate for an analysis role. Bump to 0.7-0.8 for more creative
+  output (e.g. writing summaries in his own voice).
 - `num_predict 4096` — cap on a single response length, not the reasoning
   budget. The `<think>` block itself can run long (Nous reports 40K+ token
   traces on hard problems) — if responses are getting cut off mid-answer,
@@ -97,7 +112,7 @@ ollama run hermes4-14b
 ## 5. Sanity check
 
 Ask it something that should trigger reasoning mode (e.g. a multi-step logic
-or math problem) and confirm you see a `<think>...</think>` block before the
+or math problem) and confirm you see a <think>...</think> block before the
 answer. Ask it something trivial (e.g. "what's 2+2") and confirm it doesn't
 generate a huge think block for no reason — if it does on everything, that's
 a sign to loosen the system prompt's reasoning-trigger wording.
