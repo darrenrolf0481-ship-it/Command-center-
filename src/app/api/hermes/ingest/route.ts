@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { append } from "@/lib/hermes-store";
 
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
-    
-    // This endpoint acts as a webhook for Lab Brain to push escalations
-    console.log("Received escalation from Lab Brain/ARGUS:", payload);
-    
-    // In a real application, we would store this escalation in a database
-    // or push it to the frontend via Server-Sent Events or WebSockets.
-    
-    return NextResponse.json({ success: true, message: "Escalation ingested successfully" });
+    append({
+      source: payload.source || "unknown",
+      type: payload.type || "event",
+      content: typeof payload.content === "string"
+        ? payload.content
+        : JSON.stringify(payload),
+    });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("Hermes Ingest Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to ingest escalation" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
