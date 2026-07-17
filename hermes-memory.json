@@ -1,0 +1,11 @@
+{
+  "observations": [
+    {
+      "source": "startup-check",
+      "type": "event",
+      "content": "ecosystem full-startup verification ping",
+      "id": "v3uo950x",
+      "timestamp": "2026-07-14T23:34:04.965Z"
+    }
+  ]
+}
